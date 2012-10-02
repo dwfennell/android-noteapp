@@ -1,0 +1,12 @@
+<resources>
+
+    <string name="app_name">Note Simple</string>
+    <string name="hello_world">Hello world!</string>
+    <string name="menu_settings">Settings</string>
+    <string name="title_activity_note">Note Simple</string>
+    <string name="new_note">New</string>
+    <string name="new_note_label">New</string>
+    <string name="settings_label">Settings</string>
+    <string name="note_list_label">Note List</string>
+
+</resources>
