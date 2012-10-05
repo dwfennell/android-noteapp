@@ -8,5 +8,6 @@
     <string name="new_note_label">New</string>
     <string name="settings_label">Settings</string>
     <string name="note_list_label">Note List</string>
+    <string name="title_activity_switch_note">SwitchNote</string>
 
 </resources>
