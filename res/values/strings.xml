@@ -9,5 +9,7 @@
     <string name="settings_label">Settings</string>
     <string name="note_list_label">Note List</string>
     <string name="title_activity_switch_note">SwitchNote</string>
+    <string name="note_body_help">enter note text</string>
+    <string name="note_title_help">enter note title</string>
 
 </resources>
