@@ -3,9 +3,8 @@ package org.fennd.note.simple;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 
 import android.app.Activity;
 import android.content.Context;
@@ -18,15 +17,11 @@ import android.widget.EditText;
 
 public class NoteView extends Activity {
 
-	private String activeNoteName;
-	private String activeNoteBody;
+	private Note activeNote;
 	private SharedPreferences noteState;
 
-	// TODO: Respond to activity button presses.
-	// TODO: Respond (gracefully?) to title changes.
-	// TODO: validate note names?
+	// TODO:Code activity button press responses.
 	// TODO: Improve efficiency/robustness of persistence.
-	// TODO: Note renaming isn't working correctly.
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -47,7 +42,6 @@ public class NoteView extends Activity {
 	protected void onPause() {
 		super.onPause();
 
-		noteState.edit().putString("lastActive", activeNoteName).commit();
 		saveCurrentNote();
 	}
 
@@ -58,95 +52,108 @@ public class NoteView extends Activity {
 	}
 
 	public void newButtonClick(View view) {
-		System.out.print("button clicked");
+		// TODO: Open new file dialog, wait for user to enter note name, then
+		// create empty note.
 	}
 
 	public void noteListButtonClick(View view) {
-		System.out.print("button clicked");
+		// TODO: Display list of existing notes (new activity?).
 	}
 
 	public void settingsButtonClick(View view) {
-		System.out.print("button clicked");
+		// TODO: Display settings / user preferences.
+		// Does this even need to be a button? Replace with delete button?
 	}
 
 	private void restoreLastNote() {
-		int numberOfNotes = noteState.getInt("numberOfNotes", 0);
+		if (noteState.getBoolean("aNoteExists", false)) {
+			// A note exists in the system.
 
-		if (numberOfNotes == 0) {
-			// No notes have been created yet.
-
-			noteState.edit().putInt("untitledCount", 1).commit();
-			activeNoteName = getUntitledName(1);
-			activeNoteBody = "";
-
-			// Increment note count.
-			// TODO: Do we even need to keep a count? Would a boolean do here?
-			Editor stateEditor = noteState.edit();
-			stateEditor.putInt("numberOfNotes",
-					noteState.getInt("numberOfNotes", 0) + 1);
-			stateEditor.commit();
-
+			// TODO: Try to avoid io here, when possible.
+			// TODO: handle io failures.
+			String activeNoteFileName = noteState.getString("lastActive", "");
+			activeNote = fetchNote(activeNoteFileName);
 		} else {
-			activeNoteName = noteState.getString("lastActive", "");
-			activeNoteBody = fetchNoteBody(activeNoteName);
+			// No notes have been created yet.
+			String noteTitle = getUntitledName(1);
+			String noteBody = "";
+
+			activeNote = new Note(noteTitle, noteBody, getNewFileName());
+
+			// Update note existence flag.
+			Editor stateEditor = noteState.edit();
+			stateEditor.putBoolean("aNoteExists", true);
+			stateEditor.commit();
 		}
 
 		EditText titleWidget = (EditText) findViewById(R.id.note_title);
-		titleWidget.setText(activeNoteName);
+		titleWidget.setText(activeNote.getNoteTitle());
 
 		EditText bodyWidget = (EditText) findViewById(R.id.note_body);
-		bodyWidget.setText(activeNoteBody);
+		bodyWidget.setText(activeNote.getNoteBody());
 	}
 
 	private void saveCurrentNote() {
-		// Deal with changes to the note title.
+		// Save file name for later restoration.
+		noteState.edit().putString("lastActive", activeNote.getFilename())
+				.commit();
+
+		// Fetch note title and content.
 		EditText titleWidget = (EditText) findViewById(R.id.note_title);
 		String noteTitle = titleWidget.getText().toString();
-
 		EditText bodyWidget = (EditText) findViewById(R.id.note_body);
-		activeNoteBody = bodyWidget.getText().toString();
+		String noteBody = bodyWidget.getText().toString();
 
-		if (!noteTitle.equals(activeNoteName)) {
-			// Note title has been changed.
+		activeNote.setNoteTitle(noteTitle);
+		activeNote.setNoteBody(noteBody);
 
-			deleteFile(activeNoteName);
-			activeNoteName = noteTitle;
-		}
-
+		// Serialize Note object and store it.
 		try {
-			FileOutputStream fos = openFileOutput(activeNoteName,
-					Context.MODE_PRIVATE);
-			fos.write(activeNoteBody.getBytes());
-			fos.close();
+			FileOutputStream outputStream = openFileOutput(
+					activeNote.getFilename(), Context.MODE_PRIVATE);
+			ObjectOutputStream serializedOutput = new ObjectOutputStream(
+					outputStream);
+			serializedOutput.writeObject(activeNote);
 
+			outputStream.close();
+			serializedOutput.close();
 		} catch (IOException e) {
 			// TODO: Exception.
 			e.printStackTrace();
 		}
 	}
 
-	private String fetchNoteBody(String name) {
-		final Set<String> files = new HashSet<String>(Arrays.asList(fileList()));
-
-		if (!files.contains(name)) {
-			// File does not exist.
-			return "";
-		}
+	private Note fetchNote(String noteFilename) {
+		Note note = new Note(noteFilename);
 
 		try {
-			FileInputStream fis = openFileInput(activeNoteName);
-			byte[] input = new byte[fis.available()];
-			while (fis.read(input) != -1) {
-			}
+			FileInputStream inputStream = openFileInput(noteFilename);
+			ObjectInputStream serializedInput = new ObjectInputStream(
+					inputStream);
 
-			return new String(input);
+			// There will only be one note in this file.
+			note = (Note) serializedInput.readObject();
 
+			inputStream.close();
+			serializedInput.close();
 		} catch (IOException e) {
-			// TODO exception.
+			// TODO Exception.
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			// TODO Exception.
 			e.printStackTrace();
 		}
 
-		return "";
+		return note;
+	}
+
+	private String getNewFileName() {
+		int fileNum = noteState.getInt("fileNum", 0);
+
+		fileNum++;
+		noteState.edit().putInt("fileNum", fileNum);
+
+		return "NoteFile" + fileNum;
 	}
 
 	private String getUntitledName(Integer count) {
