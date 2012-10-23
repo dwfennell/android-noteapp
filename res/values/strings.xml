@@ -11,5 +11,9 @@
     <string name="title_activity_switch_note">SwitchNote</string>
     <string name="note_body_help">enter note text</string>
     <string name="note_title_help">enter note title</string>
+    <string name="okay">Okay</string>
+    <string name="cancel">Cancel</string>
+    <string name="new_note_prompt">New Note Title:</string>
+    <string name="title_activity_new_note_dialog">NewNoteDialog</string>
 
 </resources>
