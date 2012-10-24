@@ -8,17 +8,16 @@ import java.io.ObjectOutputStream;
 
 import org.fennd.note.simple.NewNoteDialog.NewNoteDialogListener;
 
-import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
 import android.os.Bundle;
-import android.support.v4.app.DialogFragment;
+import android.support.v4.app.FragmentActivity;
 import android.view.Menu;
 import android.view.View;
 import android.widget.EditText;
 
-public class NoteView extends Activity implements NewNoteDialogListener {
+public class NoteView extends FragmentActivity implements NewNoteDialogListener {
 
 	private Note activeNote;
 	private SharedPreferences noteState;
@@ -80,13 +79,8 @@ public class NoteView extends Activity implements NewNoteDialogListener {
 	// }
 
 	public void newButtonClick(View view) {
-		// TODO: Open new file dialog, wait for user to enter note name, then
-		// create empty note.
-
 		NewNoteDialog newDialog = NewNoteDialog.newInstance(this);
-
-		// TODO: Passing the dialog's own manager seems like a mistake.
-		newDialog.show(newDialog.getFragmentManager(), "NewNoteDialog");
+		newDialog.show(getSupportFragmentManager(), "NewNoteDialog");
 	}
 
 	public void noteListButtonClick(View view) {
@@ -104,16 +98,18 @@ public class NoteView extends Activity implements NewNoteDialogListener {
 	 * @see org.fennd.note.simple.NewNoteDialog.NewNoteDialogListener#
 	 * onDialogPositiveClick(android.support.v4.app.DialogFragment)
 	 */
-	public void onNewNoteDialogPositiveClick(DialogFragment dialog) {
+	public void onNewNoteDialogPositiveClick(NewNoteDialog dialog) {
 		// Save previous note.
 		saveCurrentNote();
 		
-		EditText noteTitleInput = (EditText) findViewById(R.id.note_title_input);
-		String newNoteTitle = noteTitleInput.getText().toString();
+		String newNoteTitle = dialog.getNewTitle();
 		
-		// Create new note.
+		EditText noteTitle = (EditText) findViewById(R.id.note_title);
+		EditText noteBody = (EditText) findViewById(R.id.note_body);
+		noteTitle.setText(newNoteTitle);
+		noteBody.setText("");
+		
 		activeNote = new Note(newNoteTitle, "", getNewFileName());
-		// Save new note (some slightly unnecessary i/o, but we don't care).
 		saveCurrentNote();
 	}
 

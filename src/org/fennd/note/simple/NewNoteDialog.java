@@ -6,8 +6,15 @@ import android.app.Dialog;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.support.v4.app.DialogFragment;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.widget.EditText;
 
 public class NewNoteDialog extends DialogFragment {
+
+	static NewNoteDialogListener mListener;
+
+	View titleInputView;
 
 	/*
 	 * The activity that creates an instance of this dialog fragment must
@@ -15,10 +22,8 @@ public class NewNoteDialog extends DialogFragment {
 	 * passes the DialogFragment in case the host needs to query it.
 	 */
 	public interface NewNoteDialogListener {
-		public void onNewNoteDialogPositiveClick(DialogFragment dialog);
+		public void onNewNoteDialogPositiveClick(NewNoteDialog dialog);
 	}
-
-	static NewNoteDialogListener mListener;
 
 	/*
 	 * Call this to instantiate a new NewNoteDialog.
@@ -50,23 +55,37 @@ public class NewNoteDialog extends DialogFragment {
 	public Dialog onCreateDialog(Bundle savedInstanceState) {
 		AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
 
+		// Add custom view.
+		LayoutInflater inflater = getActivity().getLayoutInflater();
+		titleInputView = inflater.inflate(R.layout.new_note_dialog, null);
+		builder.setView(titleInputView);
+
+		// Add "create"/"cancel" buttons.
 		builder.setPositiveButton("Create",
 				new DialogInterface.OnClickListener() {
 
 					public void onClick(DialogInterface arg0, int arg1) {
-						// See "onNewNoteDialogPositiveClick" method in NoteView
-						// activity.
+
+						mListener
+								.onNewNoteDialogPositiveClick(NewNoteDialog.this);
 					}
 				})
 				.setNegativeButton("Cancel",
 						new DialogInterface.OnClickListener() {
 
 							public void onClick(DialogInterface arg0, int arg1) {
-								// TODO: Just close dialog?
+								// Closes.
 
 							}
 						}).setMessage(R.layout.new_note_dialog);
 
 		return builder.create();
+	}
+
+	public String getNewTitle() {
+		EditText titleInput = (EditText) titleInputView
+				.findViewById(R.id.note_title_input);
+		
+		return titleInput.getText().toString();
 	}
 }
