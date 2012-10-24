@@ -51,33 +51,6 @@ public class NoteView extends FragmentActivity implements NewNoteDialogListener 
 		return true;
 	}
 
-	// @Override
-	// protected Dialog onCreateDialog(int id) {
-	// AlertDialog.Builder builder = new AlertDialog.Builder(this);
-	//
-	// LayoutInflater inflater = this.getLayoutInflater();
-	//
-	// builder.setView(inflater.inflate(R.layout.new_note_dialog, null))
-	// .setPositiveButton(R.string.okay,
-	// new DialogInterface.OnClickListener() {
-	//
-	// public void onClick(DialogInterface dialog, int id) {
-	// // TODO Code positive new note.
-	//
-	// }
-	// })
-	// .setNegativeButton(R.string.cancel,
-	// new DialogInterface.OnClickListener() {
-	//
-	// public void onClick(DialogInterface dialog, int id) {
-	// // TODO Code negative new note.
-	//
-	// }
-	// });
-	//
-	// return builder.create();
-	// }
-
 	public void newButtonClick(View view) {
 		NewNoteDialog newDialog = NewNoteDialog.newInstance(this);
 		newDialog.show(getSupportFragmentManager(), "NewNoteDialog");
@@ -85,11 +58,6 @@ public class NoteView extends FragmentActivity implements NewNoteDialogListener 
 
 	public void noteListButtonClick(View view) {
 		// TODO: Display list of existing notes (new activity?).
-	}
-
-	public void settingsButtonClick(View view) {
-		// TODO: Display settings / user preferences.
-		// Does this even need to be a button? Replace with delete button?
 	}
 
 	/*

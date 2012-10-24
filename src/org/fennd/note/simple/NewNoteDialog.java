@@ -58,7 +58,7 @@ public class NewNoteDialog extends DialogFragment {
 		// Add custom view.
 		LayoutInflater inflater = getActivity().getLayoutInflater();
 		titleInputView = inflater.inflate(R.layout.new_note_dialog, null);
-		builder.setView(titleInputView);
+		builder.setView(titleInputView).setTitle(R.string.new_note_prompt);
 
 		// Add "create"/"cancel" buttons.
 		builder.setPositiveButton("Create",
