@@ -27,6 +27,13 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="DialogFragment" />
         </activity>
+        <activity
+            android:name=".ChangeNoteView"
+            android:label="@string/title_activity_note_list_view" >
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="org.fennd.note.simple.NoteView" />
+        </activity>
     </application>
 
 </manifest>

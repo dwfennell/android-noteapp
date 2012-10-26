@@ -5,6 +5,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.util.Collection;
+import java.util.HashMap;
 
 import org.fennd.note.simple.NewNoteDialog.NewNoteDialogListener;
 
@@ -21,7 +23,9 @@ public class NoteView extends FragmentActivity implements NewNoteDialogListener 
 
 	private Note activeNote;
 	private SharedPreferences noteState;
-
+	// TODO: This should be an ordered hashmap... no internet; can't remember what that is called right now. 
+	private static HashMap<String, String> filenameToNoteName = new HashMap<String, String>();
+	
 	// TODO: Code activity button press responses.
 	// TODO: Improve efficiency/robustness of persistence.
 
@@ -80,7 +84,11 @@ public class NoteView extends FragmentActivity implements NewNoteDialogListener 
 		activeNote = new Note(newNoteTitle, "", getNewFileName());
 		saveCurrentNote();
 	}
-
+	
+	public static Collection<String> getNoteNameList() {
+		return filenameToNoteName.values();
+	}
+	
 	private void restoreLastNote() {
 		if (noteState.getBoolean("aNoteExists", false)) {
 			// A note exists in the system.
@@ -112,7 +120,7 @@ public class NoteView extends FragmentActivity implements NewNoteDialogListener 
 		// Save file name for later restoration.
 		noteState.edit().putString("lastActive", activeNote.getFilename())
 				.commit();
-
+		
 		// Fetch note title and content.
 		EditText titleWidget = (EditText) findViewById(R.id.note_title);
 		String noteTitle = titleWidget.getText().toString();
@@ -121,7 +129,13 @@ public class NoteView extends FragmentActivity implements NewNoteDialogListener 
 
 		activeNote.setNoteTitle(noteTitle);
 		activeNote.setNoteBody(noteBody);
-
+		
+//		if (filenameToNoteName.containsKey(activeNote.getFilename())) {
+//			filenameToNoteName.put(activeNote.getFilename(), noteTitle);
+//		}
+		filenameToNoteName.put(activeNote.getFilename(), noteTitle);
+		String test = filenameToNoteName.get(activeNote.getFilename());
+		
 		// Serialize Note object and store it.
 		try {
 			FileOutputStream outputStream = openFileOutput(
