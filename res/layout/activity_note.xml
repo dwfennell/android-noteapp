@@ -50,7 +50,9 @@
             android:id="@+id/note_list_button"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
+            android:onClick="noteListButtonClick"
             android:text="@string/note_list_label" />
+
     </LinearLayout>
 
 </LinearLayout>

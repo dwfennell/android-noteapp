@@ -1,41 +1,70 @@
 package org.fennd.note.simple;
 
-import java.util.Collection;
+import java.util.ArrayList;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.Menu;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemClickListener;
+import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
 public class ChangeNoteView extends Activity {
+	public final static String EXTRA_NOTENAME = "org.fennd.note.simple.NOTENAME";
 
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_change_note_view);
-        //getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        
-        Collection<String> noteNameList = NoteView.getNoteNameList();
-        
-        ListView noteDisplay = (ListView) findViewById(R.id.note_list_view);
-        
-    }
+	@Override
+	public void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_change_note_view);
+		// getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.activity_change_note_view, menu);
-        return true;
-    }
+		Intent intent = getIntent();
+		final ArrayList<String> noteNames = intent.getExtras()
+				.getStringArrayList(NoteView.EXTRA_NOTELIST);
 
-// TODO: This is disabled for now until I can get the ABS lib working. 
-//    @Override
-//    public boolean onOptionsItemSelected(MenuItem item) {
-//        switch (item.getItemId()) {
-//            case android.R.id.home:
-//                NavUtils.navigateUpFromSameTask(this);
-//                return true;
-//        }
-//        return super.onOptionsItemSelected(item);
-//    }
+		ListView noteDisplay = (ListView) findViewById(R.id.note_list_view);
+
+		// Respond to list item clicks.
+		noteDisplay.setOnItemClickListener(new OnItemClickListener() {
+
+			public void onItemClick(AdapterView<?> parent, View view,
+					int position, long id) {
+				parent.getItemAtPosition(position);
+
+				// Get clicked note name and set up intent for activity switch.
+				String clickedName = noteNames.get(position);
+				Intent newActIntent = new Intent(ChangeNoteView.this,
+						NoteView.class);
+				newActIntent.putExtra(EXTRA_NOTENAME, clickedName);
+
+				startActivity(newActIntent);
+			}
+		});
+
+		ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,
+				android.R.layout.simple_list_item_1, android.R.id.text1,
+				noteNames);
+		noteDisplay.setAdapter(adapter);
+	}
+
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		getMenuInflater().inflate(R.menu.activity_change_note_view, menu);
+		return true;
+	}
+
+	// TODO: This is disabled for now until I can get the ABS lib working.
+	// @Override
+	// public boolean onOptionsItemSelected(MenuItem item) {
+	// switch (item.getItemId()) {
+	// case android.R.id.home:
+	// NavUtils.navigateUpFromSameTask(this);
+	// return true;
+	// }
+	// return super.onOptionsItemSelected(item);
+	// }
 
 }

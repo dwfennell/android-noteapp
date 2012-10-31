@@ -1,18 +1,19 @@
 package org.fennd.note.simple;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.util.Collection;
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 
 import org.fennd.note.simple.NewNoteDialog.NewNoteDialogListener;
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.SharedPreferences.Editor;
 import android.os.Bundle;
 import android.support.v4.app.FragmentActivity;
 import android.view.Menu;
@@ -21,13 +22,13 @@ import android.widget.EditText;
 
 public class NoteView extends FragmentActivity implements NewNoteDialogListener {
 
+	public final static String EXTRA_NOTELIST = "org.fennd.note.simple.NOTELIST";
+
 	private Note activeNote;
 	private SharedPreferences noteState;
-	// TODO: This should be an ordered hashmap... no internet; can't remember what that is called right now. 
-	private static HashMap<String, String> filenameToNoteName = new HashMap<String, String>();
-	
-	// TODO: Code activity button press responses.
-	// TODO: Improve efficiency/robustness of persistence.
+	private LinkedHashMap<String, String> filenameToNoteName;
+
+	private final static String NOTE_LIST_FILENAME = "note_list.dat";
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -40,13 +41,26 @@ public class NoteView extends FragmentActivity implements NewNoteDialogListener 
 	@Override
 	protected void onResume() {
 		super.onResume();
-		restoreLastNote();
+
+		filenameToNoteName = fetchNoteList();
+
+		Intent intent = getIntent();
+		if (intent.getExtras() != null
+				&& intent.getExtras()
+						.containsKey(ChangeNoteView.EXTRA_NOTENAME)) {
+			// Load a note based on note selection activity item click.
+			restoreNote(intent.getExtras().getString(
+					ChangeNoteView.EXTRA_NOTENAME));
+		} else {
+			restoreLastNote();
+		}
 	}
 
 	@Override
 	protected void onPause() {
 		super.onPause();
 		saveCurrentNote();
+		saveNoteList();
 	}
 
 	@Override
@@ -61,7 +75,18 @@ public class NoteView extends FragmentActivity implements NewNoteDialogListener 
 	}
 
 	public void noteListButtonClick(View view) {
-		// TODO: Display list of existing notes (new activity?).
+		// Make sure current note's name is in list of note names.
+		EditText titleWidget = (EditText) findViewById(R.id.note_title);
+		String noteTitle = titleWidget.getText().toString();
+		filenameToNoteName.put(activeNote.getFilename(), noteTitle);
+
+		// Setup intent to start new activity.
+		Intent intent = new Intent(this, ChangeNoteView.class);
+		ArrayList<String> noteNames = new ArrayList<String>(
+				filenameToNoteName.values());
+		intent.putExtra(EXTRA_NOTELIST, noteNames);
+
+		startActivity(intent);
 	}
 
 	/*
@@ -73,40 +98,36 @@ public class NoteView extends FragmentActivity implements NewNoteDialogListener 
 	public void onNewNoteDialogPositiveClick(NewNoteDialog dialog) {
 		// Save previous note.
 		saveCurrentNote();
-		
+
 		String newNoteTitle = dialog.getNewTitle();
-		
+
 		EditText noteTitle = (EditText) findViewById(R.id.note_title);
 		EditText noteBody = (EditText) findViewById(R.id.note_body);
 		noteTitle.setText(newNoteTitle);
 		noteBody.setText("");
-		
-		activeNote = new Note(newNoteTitle, "", getNewFileName());
+
+		activeNote = new Note(newNoteTitle, "", getNewFilename());
 		saveCurrentNote();
 	}
-	
-	public static Collection<String> getNoteNameList() {
-		return filenameToNoteName.values();
-	}
-	
+
 	private void restoreLastNote() {
 		if (noteState.getBoolean("aNoteExists", false)) {
 			// A note exists in the system.
 
 			// TODO: Try to avoid io here, when possible.
-			// TODO: handle io failures.
 			String activeNoteFileName = noteState.getString("lastActive", "");
 			activeNote = fetchNote(activeNoteFileName);
 		} else {
 			// No notes have been created yet.
 			String noteTitle = getUntitledName(1);
 			String noteBody = "";
-			activeNote = new Note(noteTitle, noteBody, getNewFileName());
+			String filename = getNewFilename();
+			activeNote = new Note(noteTitle, noteBody, filename);
 
 			// Update note existence flag.
-			Editor stateEditor = noteState.edit();
-			stateEditor.putBoolean("aNoteExists", true);
-			stateEditor.commit();
+			noteState.edit().putBoolean("aNoteExists", true).commit();
+
+			filenameToNoteName.put(filename, noteTitle);
 		}
 
 		EditText titleWidget = (EditText) findViewById(R.id.note_title);
@@ -116,11 +137,28 @@ public class NoteView extends FragmentActivity implements NewNoteDialogListener 
 		bodyWidget.setText(activeNote.getNoteBody());
 	}
 
+	private void restoreNote(String noteName) {
+		String filename = getFilename(noteName);
+
+		if (filename.equals(null)) {
+			// Filename not found, restore last note.
+
+			restoreLastNote();
+		} else {
+			activeNote = fetchNote(filename);
+
+			EditText titleWidget = (EditText) findViewById(R.id.note_title);
+			titleWidget.setText(activeNote.getNoteTitle());
+			EditText bodyWidget = (EditText) findViewById(R.id.note_body);
+			bodyWidget.setText(activeNote.getNoteBody());
+		}
+	}
+
 	private void saveCurrentNote() {
 		// Save file name for later restoration.
 		noteState.edit().putString("lastActive", activeNote.getFilename())
 				.commit();
-		
+
 		// Fetch note title and content.
 		EditText titleWidget = (EditText) findViewById(R.id.note_title);
 		String noteTitle = titleWidget.getText().toString();
@@ -129,20 +167,34 @@ public class NoteView extends FragmentActivity implements NewNoteDialogListener 
 
 		activeNote.setNoteTitle(noteTitle);
 		activeNote.setNoteBody(noteBody);
-		
-//		if (filenameToNoteName.containsKey(activeNote.getFilename())) {
-//			filenameToNoteName.put(activeNote.getFilename(), noteTitle);
-//		}
+
 		filenameToNoteName.put(activeNote.getFilename(), noteTitle);
-		String test = filenameToNoteName.get(activeNote.getFilename());
-		
+
 		// Serialize Note object and store it.
 		try {
 			FileOutputStream outputStream = openFileOutput(
 					activeNote.getFilename(), Context.MODE_PRIVATE);
 			ObjectOutputStream serializedOutput = new ObjectOutputStream(
 					outputStream);
+
 			serializedOutput.writeObject(activeNote);
+
+			outputStream.close();
+			serializedOutput.close();
+		} catch (IOException e) {
+			// TODO: Exception.
+			e.printStackTrace();
+		}
+	}
+
+	private void saveNoteList() {
+		try {
+			FileOutputStream outputStream = openFileOutput(NOTE_LIST_FILENAME,
+					Context.MODE_PRIVATE);
+			ObjectOutputStream serializedOutput = new ObjectOutputStream(
+					outputStream);
+
+			serializedOutput.writeObject(filenameToNoteName);
 
 			outputStream.close();
 			serializedOutput.close();
@@ -176,17 +228,52 @@ public class NoteView extends FragmentActivity implements NewNoteDialogListener 
 		return note;
 	}
 
-	private String getNewFileName() {
-		int fileNum = noteState.getInt("fileNum", 0);
+	@SuppressWarnings("unchecked")
+	private LinkedHashMap<String, String> fetchNoteList() {
+		File file = getBaseContext().getFileStreamPath(NOTE_LIST_FILENAME);
+		if (file.exists()) {
+			try {
+				FileInputStream inputStream = openFileInput(NOTE_LIST_FILENAME);
+				ObjectInputStream serializedInput = new ObjectInputStream(
+						inputStream);
+				LinkedHashMap<String, String> map = (LinkedHashMap<String, String>) serializedInput
+						.readObject();
 
+				inputStream.close();
+				serializedInput.close();
+				return map;
+			} catch (IOException e) {
+				// TODO: Exception.
+				e.printStackTrace();
+			} catch (ClassNotFoundException e) {
+				// TODO Exception.
+				e.printStackTrace();
+			}
+		}
+
+		return new LinkedHashMap<String, String>();
+	}
+
+	private String getNewFilename() {
+		int fileNum = noteState.getInt("fileNum", 0);
 		fileNum++;
-		noteState.edit().putInt("fileNum", fileNum);
+		noteState.edit().putInt("fileNum", fileNum).commit();
 
 		return "NoteFile" + fileNum;
 	}
 
 	private String getUntitledName(Integer count) {
 		return "Untitled Note " + count.toString();
+	}
+
+	private String getFilename(String noteName) {
+		for (String filename : filenameToNoteName.keySet()) {
+			if (filenameToNoteName.get(filename).equals(noteName)) {
+				return filename;
+			}
+		}
+
+		return null;
 	}
 
 }
