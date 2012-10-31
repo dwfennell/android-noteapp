@@ -7,8 +7,10 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 
+import org.fennd.note.simple.DeleteNoteDialog.DeleteDialogListener;
 import org.fennd.note.simple.NewNoteDialog.NewNoteDialogListener;
 
 import android.content.Context;
@@ -20,7 +22,8 @@ import android.view.Menu;
 import android.view.View;
 import android.widget.EditText;
 
-public class NoteView extends FragmentActivity implements NewNoteDialogListener {
+public class NoteView extends FragmentActivity implements
+		NewNoteDialogListener, DeleteDialogListener {
 
 	public final static String EXTRA_NOTELIST = "org.fennd.note.simple.NOTELIST";
 
@@ -74,6 +77,11 @@ public class NoteView extends FragmentActivity implements NewNoteDialogListener 
 		newDialog.show(getSupportFragmentManager(), "NewNoteDialog");
 	}
 
+	public void deleteButtonClick(View view) {
+		DeleteNoteDialog deleteDialog = DeleteNoteDialog.newInstance(this);
+		deleteDialog.show(getSupportFragmentManager(), "DeleteNoteDialog");
+	}
+
 	public void noteListButtonClick(View view) {
 		// Make sure current note's name is in list of note names.
 		EditText titleWidget = (EditText) findViewById(R.id.note_title);
@@ -110,6 +118,29 @@ public class NoteView extends FragmentActivity implements NewNoteDialogListener 
 		saveCurrentNote();
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see org.fennd.note.simple.DeleteNoteDialog.DeleteDialogListener#
+	 * onDeleteDialogPositiveClick(org.fennd.note.simple.DeleteNoteDialog)
+	 */
+	public void onDeleteDialogPositiveClick(DeleteNoteDialog dialog) {
+		String filename = activeNote.getFilename();
+		
+		filenameToNoteName.remove(filename);
+		deleteFile(filename);
+		
+		if (filenameToNoteName.isEmpty()) {
+			createUntitledNote();
+		} else {
+			// Just switch to the first note in this set.
+			for (String newfile : filenameToNoteName.keySet()) {
+				loadNote(newfile);
+				break;
+			}
+		}
+	}
+
 	private void restoreLastNote() {
 		if (noteState.getBoolean("aNoteExists", false)) {
 			// A note exists in the system.
@@ -119,15 +150,8 @@ public class NoteView extends FragmentActivity implements NewNoteDialogListener 
 			activeNote = fetchNote(activeNoteFileName);
 		} else {
 			// No notes have been created yet.
-			String noteTitle = getUntitledName(1);
-			String noteBody = "";
-			String filename = getNewFilename();
-			activeNote = new Note(noteTitle, noteBody, filename);
-
-			// Update note existence flag.
-			noteState.edit().putBoolean("aNoteExists", true).commit();
-
-			filenameToNoteName.put(filename, noteTitle);
+			
+			createUntitledNote();
 		}
 
 		EditText titleWidget = (EditText) findViewById(R.id.note_title);
@@ -153,7 +177,7 @@ public class NoteView extends FragmentActivity implements NewNoteDialogListener 
 			bodyWidget.setText(activeNote.getNoteBody());
 		}
 	}
-
+	
 	private void saveCurrentNote() {
 		// Save file name for later restoration.
 		noteState.edit().putString("lastActive", activeNote.getFilename())
@@ -203,7 +227,16 @@ public class NoteView extends FragmentActivity implements NewNoteDialogListener 
 			e.printStackTrace();
 		}
 	}
+	
+	private void loadNote(String filename) {		
+		activeNote = fetchNote(filename);
 
+		EditText titleWidget = (EditText) findViewById(R.id.note_title);
+		titleWidget.setText(activeNote.getNoteTitle());
+		EditText bodyWidget = (EditText) findViewById(R.id.note_body);
+		bodyWidget.setText(activeNote.getNoteBody());
+	}
+	
 	private Note fetchNote(String noteFilename) {
 		Note note = new Note(noteFilename);
 
@@ -254,6 +287,19 @@ public class NoteView extends FragmentActivity implements NewNoteDialogListener 
 		return new LinkedHashMap<String, String>();
 	}
 
+	private void createUntitledNote() {
+		String noteTitle = getUntitledName(1);
+		String noteBody = "";
+		String filename = getNewFilename();
+		activeNote = new Note(noteTitle, noteBody, filename);
+
+		// Update note existence flag.
+		noteState.edit().putBoolean("aNoteExists", true).commit();
+
+		filenameToNoteName.put(filename, noteTitle);
+		loadNote(filename);
+	}
+	
 	private String getNewFilename() {
 		int fileNum = noteState.getInt("fileNum", 0);
 		fileNum++;

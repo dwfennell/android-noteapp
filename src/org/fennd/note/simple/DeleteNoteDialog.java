@@ -6,23 +6,18 @@ import android.app.Dialog;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.support.v4.app.DialogFragment;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.widget.EditText;
 
-public class NewNoteDialog extends DialogFragment {
+public class DeleteNoteDialog extends DialogFragment {
 
-	static NewNoteDialogListener mListener;
-
-	View titleInputView;
+	static DeleteDialogListener mListener;
 
 	/*
 	 * The activity that creates an instance of this dialog fragment must
 	 * implement this interface in order to receive event callbacks. Each method
 	 * passes the DialogFragment in case the host needs to query it.
 	 */
-	public interface NewNoteDialogListener {
-		public void onNewNoteDialogPositiveClick(NewNoteDialog dialog);
+	public interface DeleteDialogListener {
+		public void onDeleteDialogPositiveClick(DeleteNoteDialog dialog);
 	}
 
 	/*
@@ -36,18 +31,18 @@ public class NewNoteDialog extends DialogFragment {
 	 * @throws ClassCastException if the host activity does not implement
 	 * NoticeDialogListener.
 	 */
-	public static NewNoteDialog newInstance(Activity activity) {
+	public static DeleteNoteDialog newInstance(Activity activity) {
 		// Verify that the host activity implements the callback interface
 		try {
 			// Instantiate the NoticeDialogListener so we can send events with
 			// it.
-			mListener = (NewNoteDialogListener) activity;
+			mListener = (DeleteDialogListener) activity;
 		} catch (ClassCastException e) {
 			// The activity doesn't implement the interface, throw exception.
 			throw new ClassCastException(activity.toString()
 					+ " must implement NoticeDialogListener");
 		}
-		NewNoteDialog frag = new NewNoteDialog();
+		DeleteNoteDialog frag = new DeleteNoteDialog();
 		return frag;
 	}
 
@@ -55,19 +50,13 @@ public class NewNoteDialog extends DialogFragment {
 	public Dialog onCreateDialog(Bundle savedInstanceState) {
 		AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
 
-		// Add custom view.
-		LayoutInflater inflater = getActivity().getLayoutInflater();
-		titleInputView = inflater.inflate(R.layout.new_note_dialog, null);
-		builder.setView(titleInputView).setTitle(R.string.new_note_prompt);
-
-		// Add "create"/"cancel" buttons.
-		builder.setPositiveButton("Create",
+		builder.setPositiveButton("Delete",
 				new DialogInterface.OnClickListener() {
 
 					public void onClick(DialogInterface arg0, int arg1) {
 
 						mListener
-								.onNewNoteDialogPositiveClick(NewNoteDialog.this);
+								.onDeleteDialogPositiveClick(DeleteNoteDialog.this);
 					}
 				})
 				.setNegativeButton("Cancel",
@@ -78,15 +67,8 @@ public class NewNoteDialog extends DialogFragment {
 
 							}
 						})
-				.setMessage("woozle wazzle?");
+				.setMessage(R.string.confirm_delete);
 
 		return builder.create();
-	}
-
-	public String getNewTitle() {
-		EditText titleInput = (EditText) titleInputView
-				.findViewById(R.id.note_title_input);
-		
-		return titleInput.getText().toString();
 	}
 }
