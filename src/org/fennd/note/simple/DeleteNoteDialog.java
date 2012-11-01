@@ -50,7 +50,7 @@ public class DeleteNoteDialog extends DialogFragment {
 	public Dialog onCreateDialog(Bundle savedInstanceState) {
 		AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
 
-		builder.setPositiveButton("Delete",
+		builder.setPositiveButton(R.string.delete,
 				new DialogInterface.OnClickListener() {
 
 					public void onClick(DialogInterface arg0, int arg1) {
@@ -59,7 +59,7 @@ public class DeleteNoteDialog extends DialogFragment {
 								.onDeleteDialogPositiveClick(DeleteNoteDialog.this);
 					}
 				})
-				.setNegativeButton("Cancel",
+				.setNegativeButton(R.string.cancel,
 						new DialogInterface.OnClickListener() {
 
 							public void onClick(DialogInterface arg0, int arg1) {

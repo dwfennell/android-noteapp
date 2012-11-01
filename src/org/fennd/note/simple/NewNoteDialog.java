@@ -58,10 +58,10 @@ public class NewNoteDialog extends DialogFragment {
 		// Add custom view.
 		LayoutInflater inflater = getActivity().getLayoutInflater();
 		titleInputView = inflater.inflate(R.layout.new_note_dialog, null);
-		builder.setView(titleInputView).setTitle(R.string.new_note_prompt);
+		builder.setView(titleInputView).setTitle(R.string.new_note);
 
 		// Add "create"/"cancel" buttons.
-		builder.setPositiveButton("Create",
+		builder.setPositiveButton(R.string.create,
 				new DialogInterface.OnClickListener() {
 
 					public void onClick(DialogInterface arg0, int arg1) {
@@ -78,7 +78,7 @@ public class NewNoteDialog extends DialogFragment {
 
 							}
 						})
-				.setMessage("woozle wazzle?");
+				.setMessage(R.string.new_note_prompt);
 
 		return builder.create();
 	}
