@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.LinkedHashMap;
 
 import org.fennd.note.simple.DeleteNoteDialog.DeleteDialogListener;
@@ -25,6 +24,13 @@ import android.widget.EditText;
 public class NoteView extends FragmentActivity implements
 		NewNoteDialogListener, DeleteDialogListener {
 
+	// TODO: BUG:: duplicate note names should be disallowed, or how note
+	// switching from note list should be changed.
+	// TODO: BUG:: Untitled note name bug.
+	// TODO: Fix new note instructions.
+	// TODO: Default untitled name in new note field.
+	// TODO: Reverse menu list order.
+	
 	public final static String EXTRA_NOTELIST = "org.fennd.note.simple.NOTELIST";
 
 	private Note activeNote;
@@ -108,13 +114,10 @@ public class NoteView extends FragmentActivity implements
 		saveCurrentNote();
 
 		String newNoteTitle = dialog.getNewTitle();
-
-		EditText noteTitle = (EditText) findViewById(R.id.note_title);
-		EditText noteBody = (EditText) findViewById(R.id.note_body);
-		noteTitle.setText(newNoteTitle);
-		noteBody.setText("");
-
 		activeNote = new Note(newNoteTitle, "", getNewFilename());
+		updateNoteText();
+		
+		// Save new note.
 		saveCurrentNote();
 	}
 
@@ -126,10 +129,10 @@ public class NoteView extends FragmentActivity implements
 	 */
 	public void onDeleteDialogPositiveClick(DeleteNoteDialog dialog) {
 		String filename = activeNote.getFilename();
-		
+
 		filenameToNoteName.remove(filename);
 		deleteFile(filename);
-		
+
 		if (filenameToNoteName.isEmpty()) {
 			createUntitledNote();
 		} else {
@@ -144,21 +147,14 @@ public class NoteView extends FragmentActivity implements
 	private void restoreLastNote() {
 		if (noteState.getBoolean("aNoteExists", false)) {
 			// A note exists in the system.
-
-			// TODO: Try to avoid io here, when possible.
 			String activeNoteFileName = noteState.getString("lastActive", "");
-			activeNote = fetchNote(activeNoteFileName);
+			activeNote = fetchNote(activeNoteFileName);	
 		} else {
 			// No notes have been created yet.
-			
-			createUntitledNote();
+			createUntitledNote();			
 		}
-
-		EditText titleWidget = (EditText) findViewById(R.id.note_title);
-		titleWidget.setText(activeNote.getNoteTitle());
-
-		EditText bodyWidget = (EditText) findViewById(R.id.note_body);
-		bodyWidget.setText(activeNote.getNoteBody());
+		
+		updateNoteText();
 	}
 
 	private void restoreNote(String noteName) {
@@ -166,29 +162,22 @@ public class NoteView extends FragmentActivity implements
 
 		if (filename.equals(null)) {
 			// Filename not found, restore last note.
-
 			restoreLastNote();
 		} else {
 			activeNote = fetchNote(filename);
-
-			EditText titleWidget = (EditText) findViewById(R.id.note_title);
-			titleWidget.setText(activeNote.getNoteTitle());
-			EditText bodyWidget = (EditText) findViewById(R.id.note_body);
-			bodyWidget.setText(activeNote.getNoteBody());
+			updateNoteText();
 		}
 	}
-	
+
 	private void saveCurrentNote() {
 		// Save file name for later restoration.
 		noteState.edit().putString("lastActive", activeNote.getFilename())
 				.commit();
 
-		// Fetch note title and content.
 		EditText titleWidget = (EditText) findViewById(R.id.note_title);
-		String noteTitle = titleWidget.getText().toString();
 		EditText bodyWidget = (EditText) findViewById(R.id.note_body);
+		String noteTitle = titleWidget.getText().toString();
 		String noteBody = bodyWidget.getText().toString();
-
 		activeNote.setNoteTitle(noteTitle);
 		activeNote.setNoteBody(noteBody);
 
@@ -227,16 +216,13 @@ public class NoteView extends FragmentActivity implements
 			e.printStackTrace();
 		}
 	}
-	
-	private void loadNote(String filename) {		
+
+	private void loadNote(String filename) {
 		activeNote = fetchNote(filename);
 
-		EditText titleWidget = (EditText) findViewById(R.id.note_title);
-		titleWidget.setText(activeNote.getNoteTitle());
-		EditText bodyWidget = (EditText) findViewById(R.id.note_body);
-		bodyWidget.setText(activeNote.getNoteBody());
+		updateNoteText();
 	}
-	
+
 	private Note fetchNote(String noteFilename) {
 		Note note = new Note(noteFilename);
 
@@ -244,7 +230,7 @@ public class NoteView extends FragmentActivity implements
 			FileInputStream inputStream = openFileInput(noteFilename);
 			ObjectInputStream serializedInput = new ObjectInputStream(
 					inputStream);
-
+			
 			// There will only be one note object in this file.
 			note = (Note) serializedInput.readObject();
 
@@ -259,6 +245,13 @@ public class NoteView extends FragmentActivity implements
 		}
 
 		return note;
+	}
+
+	private void updateNoteText() {
+		EditText titleWidget = (EditText) findViewById(R.id.note_title);
+		EditText bodyWidget = (EditText) findViewById(R.id.note_body);
+		titleWidget.setText(activeNote.getNoteTitle());
+		bodyWidget.setText(activeNote.getNoteBody());
 	}
 
 	@SuppressWarnings("unchecked")
@@ -288,7 +281,7 @@ public class NoteView extends FragmentActivity implements
 	}
 
 	private void createUntitledNote() {
-		String noteTitle = getUntitledName(1);
+		String noteTitle = getUntitledName();
 		String noteBody = "";
 		String filename = getNewFilename();
 		activeNote = new Note(noteTitle, noteBody, filename);
@@ -299,7 +292,7 @@ public class NoteView extends FragmentActivity implements
 		filenameToNoteName.put(filename, noteTitle);
 		loadNote(filename);
 	}
-	
+
 	private String getNewFilename() {
 		int fileNum = noteState.getInt("fileNum", 0);
 		fileNum++;
@@ -308,8 +301,11 @@ public class NoteView extends FragmentActivity implements
 		return "NoteFile" + fileNum;
 	}
 
-	private String getUntitledName(Integer count) {
-		return "Untitled Note " + count.toString();
+	private String getUntitledName() {
+		int count = noteState.getInt("untitledCount", 1);
+		noteState.edit().putInt("untitledCount", ++count).commit();
+
+		return "Untitled Note " + Integer.toString(count);
 	}
 
 	private String getFilename(String noteName) {
