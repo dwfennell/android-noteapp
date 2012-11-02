@@ -16,6 +16,6 @@
     <string name="new_note_prompt">Create New Note</string>
     
     <string name="title_activity_note">Note Simple</string>
-    <string name="title_activity_new_note_dialog">NewNoteDialog</string>
-    <string name="title_activity_note_list_view">NoteListView</string>
+    <string name="title_activity_new_note_dialog">New Note</string>
+    <string name="title_activity_note_list_view">Notes!</string>
 </resources>

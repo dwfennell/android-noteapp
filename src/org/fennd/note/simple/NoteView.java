@@ -24,9 +24,12 @@ public class NoteView extends FragmentActivity implements
 		NewNoteDialogListener, DeleteDialogListener {
 
 	public final static String EXTRA_NOTELIST = "org.fennd.note.simple.NOTELIST";
-
+	
 	private final static String FILENAMES_FILE = "note_filenames.dat";
 	private final static String NOTENAMES_FILE = "note_note_names.dat";
+	
+	private final static String ERROR_MESSAGE_CREATE = "Memory Error: Note could note be created.";
+	private final static String ERROR_MESSAGE_LOAD = "Memory Error: Could not load note.";
 
 	private Note activeNote;
 	private SharedPreferences noteState;
@@ -45,30 +48,65 @@ public class NoteView extends FragmentActivity implements
 	@Override
 	protected void onResume() {
 		super.onResume();
-		filenames = fetchFilenames();
-		noteNames = fetchNoteNames();
+
+		// Load note name and filename lists.
+		try {
+			filenames = fetchFilenames();
+			noteNames = fetchNoteNames();
+		} catch (IOException e) {
+			// Filename and note name lists could not be deserialized. Attempt
+			// to recover name lists from note files 'on disk'.
+			if (!recoverNameLists()) {
+				// Could not recover note lists. Start from scratch.
+				filenames = new ArrayList<String>();
+				noteNames = new ArrayList<String>();
+			}
+		}
 		
+		// Load note.
 		Bundle extras = getIntent().getExtras();
 		if (extras != null
 				&& extras.containsKey(ChangeNoteView.EXTRA_NOTE_SELECTED)) {
+			
 			// Restore note based on user selection.
 			activeIndex = extras.getInt(ChangeNoteView.EXTRA_NOTE_SELECTED);
 			String filename = filenames.get(activeIndex);
-			activeNote = fetchNote(filename);
-			updateWidgetText();
 			
+			try {
+			activeNote = fetchNote(filename);
+			} catch (IOException e) {
+				handleException(e, ERROR_MESSAGE_LOAD);
+			}
+			updateWidgetText();
+
 		} else {
 			// Restore last active note.
-			restoreActiveNote();
+			
+			try {
+				restoreActiveNote();
+			} catch (IOException e) {
+				handleException(e, ERROR_MESSAGE_LOAD);
+			}
 		}
 	}
 
 	@Override
 	protected void onPause() {
 		super.onPause();
-		saveCurrentNote();
-
-		saveNoteLists();
+		
+		// Save note.
+		try {
+			saveCurrentNote();
+		} catch (IOException e) {
+			handleException(e, ERROR_MESSAGE_CREATE);
+		}
+		
+		// Save note name and filename lists.
+		try {
+			saveNoteLists();
+		} catch (IOException e) {
+			recoverNameLists();
+		}
 	}
 
 	@Override
@@ -92,7 +130,7 @@ public class NoteView extends FragmentActivity implements
 		EditText nameWidget = (EditText) findViewById(R.id.note_title);
 		String noteName = nameWidget.getText().toString();
 		noteNames.set(activeIndex, noteName);
-		
+
 		// Start note selection activity.
 		Intent intent = new Intent(this, ChangeNoteView.class);
 		intent.putExtra(EXTRA_NOTELIST, noteNames);
@@ -107,7 +145,11 @@ public class NoteView extends FragmentActivity implements
 	 */
 	public void onNewNoteDialogPositiveClick(NewNoteDialog dialog) {
 		// Save previous note.
-		saveCurrentNote();
+		try {
+			saveCurrentNote();
+		} catch (IOException e) {
+			handleException(e, ERROR_MESSAGE_CREATE);
+		}
 
 		String newNoteTitle = dialog.getNewTitle();
 
@@ -116,7 +158,7 @@ public class NoteView extends FragmentActivity implements
 		}
 		String filename = getNewFilename();
 		activeNote = new Note(newNoteTitle, "", filename);
-		
+
 		// Update filename and noteName list.
 		activeIndex = filenames.size();
 		filenames.add(filename);
@@ -142,19 +184,25 @@ public class NoteView extends FragmentActivity implements
 			updateWidgetText();
 
 		} else {
-			// Switch to the first note in the list.
-			loadNote(filenames.get(0));
+			// Note deleted. Switch to the first note in the list.
+			try {
+				loadNote(filenames.get(0));
+			} catch (IOException e) {
+				// Note could not be loaded. Create new note and hope for the
+				// best.
+				activeNote = createUntitledNote();
+				updateWidgetText();
+			}
 		}
-		
+
 		activeIndex = findActiveIndex();
 	}
 
-	private void restoreActiveNote() {
+	private void restoreActiveNote() throws IOException {
 		String filename;
 		if (filenames.isEmpty()) {
 			// No notes have been created yet.
 			activeNote = createUntitledNote();
-
 		} else {
 			// At least one note exists.
 			filename = noteState.getString("lastActive", "");
@@ -164,8 +212,8 @@ public class NoteView extends FragmentActivity implements
 		activeIndex = findActiveIndex();
 		updateWidgetText();
 	}
-	
-	private void saveCurrentNote() {
+
+	private void saveCurrentNote() throws IOException {
 		// Save file name for later restoration.
 		noteState.edit().putString("lastActive", activeNote.getFilename())
 				.commit();
@@ -176,97 +224,117 @@ public class NoteView extends FragmentActivity implements
 		String noteBody = bodyWidget.getText().toString();
 		activeNote.setNoteTitle(noteTitle);
 		activeNote.setNoteBody(noteBody);
-		
+
 		noteNames.set(activeIndex, noteTitle);
-		
+
 		saveObjectToFile(activeNote, activeNote.getFilename());
 	}
 
-	private void saveNoteLists() {
+	private void saveNoteLists() throws IOException {
 		saveObjectToFile(filenames, FILENAMES_FILE);
 		saveObjectToFile(noteNames, NOTENAMES_FILE);
 	}
 
-	private void saveObjectToFile(Object object, String filename) {
+	private void saveObjectToFile(Object object, String filename)
+			throws IOException {
+		FileOutputStream outputStream = null;
+		ObjectOutputStream serializedOutput = null;
+
 		try {
-			FileOutputStream outputStream = openFileOutput(filename,
-					Context.MODE_PRIVATE);
-			ObjectOutputStream serializedOutput = new ObjectOutputStream(
-					outputStream);
-			
+			outputStream = openFileOutput(filename, Context.MODE_PRIVATE);
+			serializedOutput = new ObjectOutputStream(outputStream);
 			serializedOutput.writeObject(object);
-			
-			outputStream.close();
-			serializedOutput.close();
-		} catch (IOException e) {
-			// TODO: Exception.
-			e.printStackTrace();
+
+		} finally {
+			try {
+				if (outputStream != null)
+					outputStream.close();
+				if (serializedOutput != null)
+					serializedOutput.close();
+			} catch (IOException e) {
+				// We may have just leaked some memory.
+			}
 		}
 	}
-	
-	private void loadNote(String filename) {
+
+	private void loadNote(String filename) throws IOException {
 		activeNote = fetchNote(filename);
 		updateWidgetText();
 	}
 
-	private Note fetchNote(String noteFilename) {
-		Note note = new Note(noteFilename);
+	private Note fetchNote(String noteFilename) throws IOException {
+		Note note = null;
+		FileInputStream inputStream = null;
+		ObjectInputStream serializedInput = null;
 
 		try {
-			FileInputStream inputStream = openFileInput(noteFilename);
-			ObjectInputStream serializedInput = new ObjectInputStream(
-					inputStream);
+			inputStream = openFileInput(noteFilename);
+			serializedInput = new ObjectInputStream(inputStream);
 
 			// There will only be one note object in this file.
 			note = (Note) serializedInput.readObject();
 
-			inputStream.close();
-			serializedInput.close();
-		} catch (IOException e) {
-			// TODO Exception.
-			e.printStackTrace();
 		} catch (ClassNotFoundException e) {
-			// TODO Exception.
-			e.printStackTrace();
+			handleException(e);
+		} finally {
+			try {
+				if (inputStream != null)
+					inputStream.close();
+				if (serializedInput != null)
+					serializedInput.close();
+			} catch (IOException e) {
+				// We may have just leaked some memory.
+			}
 		}
 
 		return note;
 	}
 
-	private ArrayList<String> fetchFilenames() {
+	private ArrayList<String> fetchFilenames() throws IOException {
 		return fetchSerializedArrayList(FILENAMES_FILE);
 	}
-	
-	private ArrayList<String> fetchNoteNames() {
+
+	private ArrayList<String> fetchNoteNames() throws IOException {
 		return fetchSerializedArrayList(NOTENAMES_FILE);
 	}
-	
+
 	@SuppressWarnings("unchecked")
-	private ArrayList<String> fetchSerializedArrayList(String filename) {
+	private ArrayList<String> fetchSerializedArrayList(String filename)
+			throws IOException {
+		// Check for file existence.
 		File file = getBaseContext().getFileStreamPath(filename);
 		if (!file.exists()) {
 			return new ArrayList<String>();
 		}
 
+		FileInputStream inputStream = null;
+		ObjectInputStream objStream = null;
+		ArrayList<String> names = null;
+
 		try {
-			FileInputStream inputStream = openFileInput(filename);
-			ObjectInputStream sInput = new ObjectInputStream(inputStream);
-			ArrayList<String> names = (ArrayList<String>) sInput.readObject();
+			inputStream = openFileInput(filename);
+			objStream = new ObjectInputStream(inputStream);
+			names = (ArrayList<String>) objStream.readObject();
 
-			inputStream.close();
-			sInput.close();
-			return names;
-
-		} catch (IOException e) {
-			// TODO: Exception.
-			e.printStackTrace();
 		} catch (ClassNotFoundException e) {
-			// TODO Exception.
-			e.printStackTrace();
+			handleException(e);
+		} finally {
+			// Close data access resources.
+			try {
+				if (inputStream != null)
+					inputStream.close();
+				if (objStream != null)
+					objStream.close();
+			} catch (IOException e) {
+				// Looks like we have leaked some memory.
+			}
 		}
 
-		// This line should never run.
-		return new ArrayList<String>();
+		if (names != null) {
+			return names;
+		} else {
+			return new ArrayList<String>();
+		}
 	}
 
 	private void updateWidgetText() {
@@ -283,7 +351,7 @@ public class NoteView extends FragmentActivity implements
 
 		filenames.add(filename);
 		noteNames.add(noteTitle);
-		
+
 		return new Note(noteTitle, noteBody, filename);
 	}
 
@@ -291,7 +359,6 @@ public class NoteView extends FragmentActivity implements
 		int fileNum = noteState.getInt("fileNum", 0);
 		fileNum++;
 		noteState.edit().putInt("fileNum", fileNum).commit();
-
 		return "NoteFile" + fileNum;
 	}
 
@@ -310,7 +377,7 @@ public class NoteView extends FragmentActivity implements
 
 	private int findActiveIndex() {
 		String filename = activeNote.getFilename();
-		
+
 		for (int i = 0; i < filenames.size(); i++) {
 			if (filename.equals(filenames.get(i))) {
 				return i;
@@ -319,4 +386,18 @@ public class NoteView extends FragmentActivity implements
 		return -1;
 	}
 
+	private void handleException(Exception e) {
+		// TODO: Inform user of exception... or something.
+	}
+
+	private void handleException(Exception e, String message) {
+		// TODO: Inform user of exception... or something.
+	}
+	
+	private boolean recoverNameLists() {
+		// TODO: Recover 'filenames' and 'noteNames' arrays from note files on
+		// disk.
+
+		return false;
+	}
 }
