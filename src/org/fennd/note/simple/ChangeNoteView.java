@@ -13,7 +13,7 @@ import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
 public class ChangeNoteView extends Activity {
-	public final static String EXTRA_NOTENAME = "org.fennd.note.simple.NOTENAME";
+	public final static String EXTRA_NOTE_SELECTED = "org.fennd.note.simple.NOTENAME";
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -32,14 +32,10 @@ public class ChangeNoteView extends Activity {
 
 			public void onItemClick(AdapterView<?> parent, View view,
 					int position, long id) {
-				parent.getItemAtPosition(position);
 
-				// Get clicked note name and set up intent for activity switch.
-				String clickedName = noteNames.get(position);
 				Intent newActIntent = new Intent(ChangeNoteView.this,
 						NoteView.class);
-				newActIntent.putExtra(EXTRA_NOTENAME, clickedName);
-
+				newActIntent.putExtra(EXTRA_NOTE_SELECTED, position);
 				startActivity(newActIntent);
 			}
 		});
