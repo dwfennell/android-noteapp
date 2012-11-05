@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *  
- * Based on works by Eric Harlow released with the following licence:
+ * Based on works by Eric Harlow released with the following license:
  *     Copyright (C) 2010 Eric Harlow
  *
  *     Licensed under the Apache License, Version 2.0 (the "License");
@@ -61,7 +61,7 @@ public class SelectNoteView extends ListActivity {
 
 		setListAdapter(new DragNDropAdapter(this,
 				new int[] { R.layout.dragitem }, new int[] { R.id.TextView01 },
-				content));// new DragNDropAdapter(this,content)
+				content));
 		ListView listView = getListView();
 
 		if (listView instanceof DragNDropListView) {
@@ -92,7 +92,6 @@ public class SelectNoteView extends ListActivity {
 	};
 
 	private DragListener mDragListener = new DragListener() {
-
 		int backgroundColor = 0xe0103010;
 		int defaultBackgroundColor;
 
