@@ -66,10 +66,10 @@ public class NoteView extends FragmentActivity implements
 		// Load note.
 		Bundle extras = getIntent().getExtras();
 		if (extras != null
-				&& extras.containsKey(ChangeNoteView.EXTRA_NOTE_SELECTED)) {
+				&& extras.containsKey(SelectNoteView.EXTRA_NOTE_SELECTED)) {
 			
 			// Restore note based on user selection.
-			activeIndex = extras.getInt(ChangeNoteView.EXTRA_NOTE_SELECTED);
+			activeIndex = extras.getInt(SelectNoteView.EXTRA_NOTE_SELECTED);
 			String filename = filenames.get(activeIndex);
 			
 			try {
@@ -132,7 +132,7 @@ public class NoteView extends FragmentActivity implements
 		noteNames.set(activeIndex, noteName);
 
 		// Start note selection activity.
-		Intent intent = new Intent(this, ChangeNoteView.class);
+		Intent intent = new Intent(this, SelectNoteView.class);
 		intent.putExtra(EXTRA_NOTELIST, noteNames);
 		startActivity(intent);
 	}
