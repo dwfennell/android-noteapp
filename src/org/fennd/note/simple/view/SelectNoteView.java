@@ -29,10 +29,11 @@
  *     limitations under the License.
  */
 
-package org.fennd.note.simple;
+package org.fennd.note.simple.view;
 
 import java.util.ArrayList;
 
+import org.fennd.note.simple.R;
 import org.fennd.note.simple.drag_n_drop.DragListener;
 import org.fennd.note.simple.drag_n_drop.DragNDropAdapter;
 import org.fennd.note.simple.drag_n_drop.DragNDropListView;

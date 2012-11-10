@@ -14,7 +14,9 @@
  * limitations under the License.
  */
 
-package org.fennd.note.simple;
+package org.fennd.note.simple.view;
+
+import org.fennd.note.simple.R;
 
 import android.app.Activity;
 import android.app.AlertDialog;

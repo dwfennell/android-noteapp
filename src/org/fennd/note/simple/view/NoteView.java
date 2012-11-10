@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.fennd.note.simple;
+package org.fennd.note.simple.view;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -24,8 +24,11 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 
-import org.fennd.note.simple.DeleteNoteDialog.DeleteDialogListener;
-import org.fennd.note.simple.NewNoteDialog.NewNoteDialogListener;
+import org.fennd.note.simple.R;
+import org.fennd.note.simple.controller.NoteController;
+import org.fennd.note.simple.model.Note;
+import org.fennd.note.simple.view.DeleteNoteDialog.DeleteDialogListener;
+import org.fennd.note.simple.view.NewNoteDialog.NewNoteDialogListener;
 
 import android.content.Context;
 import android.content.Intent;
@@ -49,7 +52,8 @@ public class NoteView extends FragmentActivity implements
 
 	private Note activeNote;
 	private SharedPreferences noteState;
-
+	private NoteController noteControl = new NoteController(this);
+	
 	private ArrayList<String> filenames;
 	private ArrayList<String> noteNames;
 	private int activeIndex;
@@ -72,7 +76,7 @@ public class NoteView extends FragmentActivity implements
 		} catch (IOException e) {
 			// Filename and note name lists could not be deserialized. Attempt
 			// to recover name lists from note files 'on disk'.
-			if (!recoverNameLists()) {
+			if (!noteControl.recoverNameLists()) {
 				// Could not recover note lists. Start from scratch.
 				filenames = new ArrayList<String>();
 				noteNames = new ArrayList<String>();
@@ -121,7 +125,7 @@ public class NoteView extends FragmentActivity implements
 		try {
 			saveNoteLists();
 		} catch (IOException e) {
-			recoverNameLists();
+			noteControl.recoverNameLists();
 		}
 	}
 
@@ -216,9 +220,10 @@ public class NoteView extends FragmentActivity implements
 
 	private void restoreActiveNote() throws IOException {
 		String filename;
-		if (filenames.isEmpty()) {
+		if (noteControl.aNoteExists()) {
 			// No notes have been created yet.
 			activeNote = createUntitledNote();
+			
 		} else {
 			// At least one note exists.
 			filename = noteState.getString("lastActive", "");
@@ -408,12 +413,5 @@ public class NoteView extends FragmentActivity implements
 
 	private void handleException(Exception e, String message) {
 		// TODO: Inform user of exception... or something.
-	}
-	
-	private boolean recoverNameLists() {
-		// TODO: Recover 'filenames' and 'noteNames' arrays from note files on
-		// disk.
-
-		return false;
 	}
 }

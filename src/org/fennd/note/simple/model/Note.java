@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.fennd.note.simple;
+package org.fennd.note.simple.model;
 
 import java.io.Serializable;
 
