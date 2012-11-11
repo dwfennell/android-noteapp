@@ -59,7 +59,9 @@ public class SelectNoteView extends ListActivity {
         
 		final ArrayList<String> content = getIntent().getExtras()
 				.getStringArrayList(NoteView.EXTRA_NOTELIST);
-
+        
+        //ArrayList<String> content = getOrderedNoteList();
+        
 		setListAdapter(new DragNDropAdapter(this,
 				new int[] { R.layout.dragitem }, new int[] { R.id.TextView01 },
 				content));
@@ -71,7 +73,7 @@ public class SelectNoteView extends ListActivity {
 			((DragNDropListView) listView).setDragListener(mDragListener);
 		}
     }
-
+    
 	private DropListener mDropListener = new DropListener() {
 		public void onDrop(int from, int to) {
 			ListAdapter adapter = getListAdapter();

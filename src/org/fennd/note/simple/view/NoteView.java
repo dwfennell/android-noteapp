@@ -41,14 +41,15 @@ public class NoteView extends FragmentActivity implements
 	private final static String ERROR_MESSAGE_LOAD = "Memory Error: Could not load note.";
 
 	private Note activeNote;
-	private SharedPreferences noteState;
-	private NoteController noteControl = new NoteController(this);
+	private SharedPreferences preferences;
+	private NoteController noteControl;
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_note);
-		noteState = getPreferences(0);
+		preferences = getPreferences(0);
+		noteControl = new NoteController(this);
 	}
 
 	@Override
@@ -61,12 +62,21 @@ public class NoteView extends FragmentActivity implements
 				&& extras.containsKey(SelectNoteView.EXTRA_NOTE_SELECTED)) {
 			// Load note based on users selection in SelectNoteView.
 			int selectedIndex = extras.getInt(SelectNoteView.EXTRA_NOTE_SELECTED);
-			activeNote = noteControl.loadNote(selectedIndex);
-
+			
+			try {
+				activeNote = noteControl.loadNote(selectedIndex);
+			} catch (IOException e) {
+				// TODO: exception.
+			}
+			
 		} else {
 			// Restore last active note.
-			String activeFilename = noteState.getString("lastActive", "");
-			activeNote = noteControl.loadNote(activeFilename);
+			String activeFilename = preferences.getString("lastActive", "");
+			try {
+				activeNote = noteControl.loadNote(activeFilename);
+			} catch (IOException e) {
+				handleException(e, ERROR_MESSAGE_LOAD);
+			}
 		}
 		
 		updateWidgetText();
@@ -82,6 +92,8 @@ public class NoteView extends FragmentActivity implements
 		} catch (IOException e) {
 			handleException(e, ERROR_MESSAGE_CREATE);
 		}
+		
+		noteControl.sleepController();
 	}
 
 	@Override
@@ -106,11 +118,11 @@ public class NoteView extends FragmentActivity implements
 		String noteTitle = titleWidget.getText().toString();
 		activeNote.setNoteTitle(noteTitle);
 		
-		noteControl.updateNoteName(activeNote);
+		noteControl.updateNoteTitle(activeNote);
 		
 		// Start note selection activity.
 		Intent intent = new Intent(this, SelectNoteView.class);
-		intent.putExtra(EXTRA_NOTELIST, noteControl.getNoteList());
+		intent.putExtra(EXTRA_NOTELIST, noteControl.getOrderedNoteList());
 		startActivity(intent);
 	}
 
@@ -129,12 +141,7 @@ public class NoteView extends FragmentActivity implements
 		}
 
 		String newNoteTitle = dialog.getNewTitle();
-
-		if ("".equals(newNoteTitle)) {
-			newNoteTitle = getUntitledName();
-		}
-		String filename = getNewFilename();
-		activeNote = new Note(newNoteTitle, "", filename);
+		activeNote = noteControl.createNewNote(newNoteTitle, "");
 
 		updateWidgetText();
 	}
@@ -146,13 +153,13 @@ public class NoteView extends FragmentActivity implements
 	 * onDeleteDialogPositiveClick(org.fennd.note.simple.DeleteNoteDialog)
 	 */
 	public void onDeleteDialogPositiveClick(DeleteNoteDialog dialog) {
-		activeNote = noteControl.delete(activeNote);		
+		activeNote = noteControl.delete(activeNote);
 		updateWidgetText();
 	}
 
 	private void saveCurrentNote() throws IOException {
 		// Save file name for later restoration.
-		noteState.edit().putString("lastActive", activeNote.getFilename())
+		preferences.edit().putString("lastActive", activeNote.getFilename())
 				.commit();
 		
 		// Fetch updated text.
@@ -171,26 +178,6 @@ public class NoteView extends FragmentActivity implements
 		EditText bodyWidget = (EditText) findViewById(R.id.note_body);
 		titleWidget.setText(activeNote.getNoteTitle());
 		bodyWidget.setText(activeNote.getNoteBody());
-	}
-
-	private String getNewFilename() {
-		int fileNum = noteState.getInt("fileNum", 0);
-		fileNum++;
-		noteState.edit().putInt("fileNum", fileNum).commit();
-		return "NoteFile" + fileNum;
-	}
-
-	private String getUntitledName() {
-		return getUntitledName(true);
-	}
-
-	private String getUntitledName(Boolean doIncrement) {
-		int count = noteState.getInt("untitledCount", 1);
-		if (doIncrement) {
-			noteState.edit().putInt("untitledCount", count + 1).commit();
-		}
-
-		return "Untitled Note " + Integer.toString(count);
 	}
 
 	private void handleException(Exception e, String message) {
