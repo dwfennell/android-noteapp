@@ -120,18 +120,18 @@ public class NoteController {
 		}
 		
 		// Adjust order list to account for note deletion.
-		int orderNum = orderMap.get(realNoteIndex);
+		int curOrderNum = orderMap.get(realNoteIndex);
 		int prevNoteIndex = 0;
 		orderMap.remove(realNoteIndex);
 		for (int i = 0; i < orderMap.size(); i++) {
-			int mapValue = orderMap.get(i);
+			int orderNumAtIndex = orderMap.get(i);
 			
-			if (orderNum > mapValue) {
-				orderMap.set(i, mapValue - 1);
+			if (curOrderNum < orderNumAtIndex) {
+				orderMap.set(i, orderNumAtIndex - 1);
 			}
 
 			// Find previous index, because we are going to display it.
-			if (mapValue == orderNum - 1) {
+			if (orderNumAtIndex == curOrderNum - 1) {
 				prevNoteIndex = i;
 			}
 		}
