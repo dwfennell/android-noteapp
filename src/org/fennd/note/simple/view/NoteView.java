@@ -71,9 +71,13 @@ public class NoteView extends FragmentActivity implements
 			
 		} else {
 			// Restore last active note.
-			String activeFilename = preferences.getString("lastActive", "");
+			String activeFilename = preferences.getString("lastActive", null);
 			try {
-				activeNote = noteControl.loadNote(activeFilename);
+				if (activeFilename == null) {
+					activeNote = noteControl.createNewNote();
+				} else {
+					activeNote = noteControl.loadNote(activeFilename);
+				}
 			} catch (IOException e) {
 				handleException(e, ERROR_MESSAGE_LOAD);
 			}
@@ -182,5 +186,17 @@ public class NoteView extends FragmentActivity implements
 
 	private void handleException(Exception e, String message) {
 		// TODO: Inform user of exception... or something.
+	}
+
+	@Override
+	protected void onRestoreInstanceState(Bundle savedInstanceState) {
+		// TODO Auto-generated method stub
+		super.onRestoreInstanceState(savedInstanceState);
+	}
+	
+	protected void onSaveInstanceState(Bundle outState) {
+		super.onSaveInstanceState(outState);
+		// TODO: Save field data here.
+		
 	}
 }
