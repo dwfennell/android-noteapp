@@ -34,6 +34,7 @@ package org.fennd.note.simple.view;
 import java.util.ArrayList;
 
 import org.fennd.note.simple.R;
+import org.fennd.note.simple.controller.NoteController;
 import org.fennd.note.simple.drag_n_drop.DragListener;
 import org.fennd.note.simple.drag_n_drop.DragNDropAdapter;
 import org.fennd.note.simple.drag_n_drop.DragNDropListView;
@@ -41,6 +42,7 @@ import org.fennd.note.simple.drag_n_drop.DropListener;
 import org.fennd.note.simple.drag_n_drop.RemoveListener;
 
 import android.app.ListActivity;
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.ImageView;
@@ -51,6 +53,9 @@ public class SelectNoteView extends ListActivity {
 	
 	public final static String EXTRA_NOTE_SELECTED = "org.fennd.note.simple.NOTENAME";
 	
+	// TODO: BUG. App crashes when back button is pressed in this activity.
+	// TODO: Test note reordering.
+	
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -59,9 +64,7 @@ public class SelectNoteView extends ListActivity {
         
 		final ArrayList<String> content = getIntent().getExtras()
 				.getStringArrayList(NoteView.EXTRA_NOTELIST);
-        
-        //ArrayList<String> content = getOrderedNoteList();
-        
+                
 		setListAdapter(new DragNDropAdapter(this,
 				new int[] { R.layout.dragitem }, new int[] { R.id.TextView01 },
 				content));
@@ -74,11 +77,25 @@ public class SelectNoteView extends ListActivity {
 		}
     }
     
+	@Override
+	protected void onListItemClick(ListView l, View v, int position, long id) {
+		super.onListItemClick(l, v, position, id);
+		
+		Intent intent = new Intent(this, NoteView.class);
+		intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+		intent.putExtra(EXTRA_NOTE_SELECTED, position);
+		startActivity(intent);
+	}
+    
 	private DropListener mDropListener = new DropListener() {
 		public void onDrop(int from, int to) {
 			ListAdapter adapter = getListAdapter();
 			if (adapter instanceof DragNDropAdapter) {
 				((DragNDropAdapter) adapter).onDrop(from, to);
+				
+				// Process note order changes.
+				NoteController.getInstance().noteOrderChanged(from, to);
+				
 				getListView().invalidateViews();
 			}
 		}
@@ -99,7 +116,7 @@ public class SelectNoteView extends ListActivity {
 		int defaultBackgroundColor;
 
 		public void onDrag(int x, int y, ListView listView) {
-			// TODO Auto-generated method stub
+			// Nothing here (yet).
 		}
 
 		public void onStartDrag(View itemView) {

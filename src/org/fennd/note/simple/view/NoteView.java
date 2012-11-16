@@ -49,7 +49,8 @@ public class NoteView extends FragmentActivity implements
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_note);
 		preferences = getPreferences(0);
-		noteControl = new NoteController(this);
+		
+		noteControl = NoteController.getInstance(this);
 	}
 
 	@Override

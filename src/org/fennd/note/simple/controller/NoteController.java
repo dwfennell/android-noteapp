@@ -17,7 +17,7 @@ import android.content.SharedPreferences;
 
 public class NoteController {
 	
-	// TODO: Should this be a singleton? 
+	// TODO: Decouple this class from NoteView? Probably a good idea.
 	
 	private final static String FILENAMES_FILE = "note_filenames.dat";
 	private final static String NOTE_TITLES_FILE = "note_note_names.dat";
@@ -31,7 +31,28 @@ public class NoteController {
 	private NoteView noteView;
 	private SharedPreferences preferences;
 
-	public NoteController(NoteView noteViewIn) {
+	private static NoteController instance = null;
+	
+	public static NoteController getInstance(NoteView aNoteView) {
+		if (instance == null) {
+			instance = new NoteController(aNoteView);
+		}
+		
+		return instance;
+	}
+	
+	public static NoteController getInstance() {
+		if (instance == null) {
+			
+			// TODO: THIS WILL BREAK THINGS (at some point). REFACTOR!
+			return new NoteController(null);
+		}
+		
+		return instance;
+	}
+	
+	
+	private NoteController(NoteView noteViewIn) {
 		noteView = noteViewIn;
 		preferences = noteView.getPreferences(0);
 		loadNoteLists();
@@ -47,12 +68,6 @@ public class NoteController {
 		}
 	}
 	
-//	public void wakeController(NoteView noteViewIn) {
-//		noteView = noteViewIn;
-//		preferences = noteView.getPreferences(0);
-//		loadNoteLists();
-//	}
-	
 	public boolean aNoteExists() {
 		return !noteTitles.isEmpty();
 	}
@@ -62,7 +77,6 @@ public class NoteController {
 	}
 	
 	public ArrayList<String> getOrderedNoteList() {
-		// TODO: Check this.
 		ArrayList<String> orderedNoteList = new ArrayList<String>();
 		for (int i : orderMap) {
 			orderedNoteList.add(noteTitles.get(i));
@@ -107,8 +121,6 @@ public class NoteController {
 	}
 
 	public Note delete(Note note) {
-		// TODO: This definitely needs to be tested.
-		
 		// Find note index in 'noteFilenames' and 'noteTitles'.
 		String noteFilename = note.getFilename();
 		int realNoteIndex = 0;
@@ -167,38 +179,38 @@ public class NoteController {
 	}
 
 	public void noteOrderChanged(int previousIndex, int currentIndex) {
-		// TODO: check this, and switch to arrayList implementation.
-		// Really, we may not even need this.
-//		int currentIndexValue = orderMap[currentIndex];
-//
-//		if (currentIndex == previousIndex) {
-//			return;
-//		} else if (currentIndex < previousIndex) {
-//
-//			// . . . X . . . to:
-//			// . X . . . . .
-//			// is prev = 3, cur = 1
-//			// the same: 0, 4, 5, 6
-//			// changed: 1, 2 (both +1)
-//
-//			for (int i = previousIndex; i < currentIndex; i--) {
-//				orderMap[i] = orderMap[i - 1];
-//			}
-//		} else {
-//			// previousIndex > currentIndex
-//
-//			// . X . . . . .
-//			// . . . X . . .
-//			// prev = 1, cur = 3
-//			// the same: 0, 4, 5, 6
-//			// changed: 2, 3 (both -1)
-//
-//			for (int i = previousIndex; i < currentIndex; i++) {
-//				orderMap[i] = orderMap[i + 1];
-//			}
-//		}
-//
-//		orderMap[currentIndex] = currentIndexValue;
+		// TODO: Test!
+		// TODO: rename variables in this method... you can do better than this!
+		int currentIndexValue = orderMap.get(currentIndex);
+
+		if (currentIndex == previousIndex) {
+			return;
+		} else if (currentIndex < previousIndex) {
+
+			// . . . X . . . to:
+			// . X . . . . .
+			// is prev = 3, cur = 1
+			// the same: 0, 4, 5, 6
+			// changed: 1, 2 (both +1)
+
+			for (int i = previousIndex; i < currentIndex; i--) {
+				orderMap.set(i, orderMap.get(i - 1));
+			}
+		} else {
+			// previousIndex > currentIndex
+
+			// . X . . . . .
+			// . . . X . . .
+			// prev = 1, cur = 3
+			// the same: 0, 4, 5, 6
+			// changed: 2, 3 (both -1)
+
+			for (int i = previousIndex; i < currentIndex; i++) {
+				orderMap.set(i, orderMap.get(i + 1));
+			}
+		}
+
+		orderMap.set(currentIndex, currentIndexValue);
 	}
 
 	private void loadNoteLists() {
@@ -362,6 +374,7 @@ public class NoteController {
 
 	private void handleException(Exception e) {
 		// TODO: still need to figure out exceptions exactly.
+		// Some sort of error message to the user at this point, I think.
 	}
 
 	private boolean recoverNameLists() {
