@@ -16,15 +16,15 @@ import android.content.Context;
 import android.content.SharedPreferences;
 
 public class NoteController {
-	
+
 	// TODO: Decouple this class from NoteView? Probably a good idea.
-	
+
 	private final static String FILENAMES_FILE = "note_filenames.dat";
 	private final static String NOTE_TITLES_FILE = "note_note_names.dat";
 	private final static String ORDER_MAP_FILE = "note_order.dat";
-	
+
 	private ArrayList<Integer> orderMap;
-	
+
 	private ArrayList<String> noteTitles;
 	private ArrayList<String> noteFilenames;
 
@@ -32,42 +32,41 @@ public class NoteController {
 	private SharedPreferences preferences;
 
 	private static NoteController instance = null;
-	
+
 	public static NoteController getInstance(NoteView aNoteView) {
 		if (instance == null) {
 			instance = new NoteController(aNoteView);
 		}
-		
+
 		return instance;
 	}
-	
+
 	public static NoteController getInstance() {
 		if (instance == null) {
-			
+
 			// TODO: THIS WILL BREAK THINGS (at some point). REFACTOR!
 			return new NoteController(null);
 		}
-		
+
 		return instance;
 	}
-	
-	
+
 	private NoteController(NoteView noteViewIn) {
 		noteView = noteViewIn;
 		preferences = noteView.getPreferences(0);
 		loadNoteLists();
 	}
-	
+
 	public void sleepController() {
 		try {
 			storeObject(noteTitles, NOTE_TITLES_FILE);
 			storeObject(noteFilenames, FILENAMES_FILE);
 			storeObject(orderMap, ORDER_MAP_FILE);
 		} catch (IOException e) {
-			// TODO: what? 
+			// TODO: what?
 		}
 	}
-	
+
 	public boolean aNoteExists() {
 		return !noteTitles.isEmpty();
 	}
@@ -75,22 +74,17 @@ public class NoteController {
 	public ArrayList<String> getNoteList() {
 		return noteTitles;
 	}
-	
+
 	public ArrayList<String> getOrderedNoteList() {
 		ArrayList<String> orderedNoteList = new ArrayList<String>();
 		for (int i : orderMap) {
 			orderedNoteList.add(noteTitles.get(i));
 		}
-		
+
 		return orderedNoteList;
 	}
 
 	public Note loadNote(String filename) throws IOException {
-		if ("".equals(filename)) {
-			// Indicates a new note should be created.
-			return createNewNote();
-		}
-
 		return fetchNote(filename);
 	}
 
@@ -98,25 +92,25 @@ public class NoteController {
 		// Load note corresponding to a noteList index.
 		int realIndex = orderMap.get(selectedIndex);
 		String filename = noteFilenames.get(realIndex);
-		
+
 		return loadNote(filename);
 	}
 
 	public Note createNewNote() {
 		return createNewNote(getUntitledName(), "");
 	}
-	
+
 	public Note createNewNote(String noteTitle, String noteBody) {
 		String noteFilename = getNewFilename();
-		
+
 		if ("".equals(noteTitle)) {
 			noteTitle = getUntitledName();
 		}
-		
+
 		noteTitles.add(noteTitle);
 		noteFilenames.add(noteFilename);
 		orderMap.add(noteTitles.size() - 1);
-		
+
 		return new Note(noteTitle, noteBody, noteFilename);
 	}
 
@@ -130,35 +124,40 @@ public class NoteController {
 			}
 			realNoteIndex += 1;
 		}
-		
+
 		// Adjust order list to account for note deletion.
 		int curOrderNum = orderMap.get(realNoteIndex);
 		int prevNoteIndex = 0;
 		orderMap.remove(realNoteIndex);
 		for (int i = 0; i < orderMap.size(); i++) {
 			int orderNumAtIndex = orderMap.get(i);
-			
+
 			if (curOrderNum < orderNumAtIndex) {
 				orderMap.set(i, orderNumAtIndex - 1);
 			}
 
-			// Find previous index, because we are going to display it.
+			// Find previous index, (we will display the note at referenced by
+			// that index).
 			if (orderNumAtIndex == curOrderNum - 1) {
 				prevNoteIndex = i;
 			}
 		}
-		
+
 		noteView.deleteFile(noteFilename);
 		noteFilenames.remove(realNoteIndex);
 		noteTitles.remove(realNoteIndex);
-		
+
 		Note toDisplay;
 		try {
-			toDisplay = fetchNote(noteFilenames.get(prevNoteIndex));
+			if (getNumberOfNotes() > 0) {
+				toDisplay = fetchNote(noteFilenames.get(prevNoteIndex));
+			} else {
+				toDisplay = createNewNote();
+			}
 		} catch (IOException e) {
 			toDisplay = createNewNote();
 		}
-		
+
 		return toDisplay;
 	}
 
@@ -187,7 +186,7 @@ public class NoteController {
 			for (int i = from; i > to; i--) {
 				orderMap.set(i, orderMap.get(i - 1));
 			}
-			
+
 		} else {
 			// from < to
 			for (int i = from; i < to; i++) {
@@ -206,12 +205,16 @@ public class NoteController {
 		} catch (IOException e) {
 			// Loading list names has failed. Try to recover based on note files
 			// 'on disk'.
-			if(!recoverNameLists()) {
+			if (!recoverNameLists()) {
 				// Recovery failed. Hopefully it won't ever come to this.
 				noteTitles = new ArrayList<String>();
 				noteFilenames = new ArrayList<String>();
 			}
 		}
+	}
+
+	public int getNumberOfNotes() {
+		return noteFilenames.size();
 	}
 	
 	private void storeObject(Object object, String filename) throws IOException {
@@ -219,7 +222,8 @@ public class NoteController {
 		ObjectOutputStream serializedOutput = null;
 
 		try {
-			outputStream = noteView.openFileOutput(filename, Context.MODE_PRIVATE);
+			outputStream = noteView.openFileOutput(filename,
+					Context.MODE_PRIVATE);
 			serializedOutput = new ObjectOutputStream(outputStream);
 			serializedOutput.writeObject(object);
 
@@ -230,11 +234,12 @@ public class NoteController {
 				if (serializedOutput != null)
 					serializedOutput.close();
 			} catch (IOException e) {
-				// Output streams did not close properly; we may have just leaked some memory.
+				// Output streams did not close properly; we may have just
+				// leaked some memory.
 			}
 		}
 	}
-	
+
 	private Note fetchNote(String noteFilename) throws IOException {
 		Note note = null;
 		FileInputStream inputStream = null;
@@ -263,11 +268,11 @@ public class NoteController {
 
 		return note;
 	}
-	
+
 	private ArrayList<Integer> fetchOrderMap() throws IOException {
 		return fetchSerializedIntArrayList(ORDER_MAP_FILE);
 	}
-	
+
 	private ArrayList<String> fetchFilenames() throws IOException {
 		return fetchSerializedArrayList(FILENAMES_FILE);
 
@@ -276,9 +281,10 @@ public class NoteController {
 	private ArrayList<String> fetchNoteTitles() throws IOException {
 		return fetchSerializedArrayList(NOTE_TITLES_FILE);
 	}
-	
+
 	@SuppressWarnings("unchecked")
-	private ArrayList<Integer> fetchSerializedIntArrayList(String filename) throws IOException {
+	private ArrayList<Integer> fetchSerializedIntArrayList(String filename)
+			throws IOException {
 		// Check for file existence.
 		File file = noteView.getBaseContext().getFileStreamPath(filename);
 		if (!file.exists()) {
@@ -296,7 +302,7 @@ public class NoteController {
 
 		} catch (ClassNotFoundException e) {
 			handleException(e);
-			
+
 		} catch (FileNotFoundException e) {
 			// We have already checked for file existence...
 		} finally {
@@ -317,7 +323,7 @@ public class NoteController {
 			return new ArrayList<Integer>();
 		}
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	private ArrayList<String> fetchSerializedArrayList(String filename)
 			throws IOException {
@@ -368,7 +374,7 @@ public class NoteController {
 
 		return false;
 	}
-	
+
 	private String getNewFilename() {
 		int fileNum = preferences.getInt("fileNum", 0);
 		fileNum++;
