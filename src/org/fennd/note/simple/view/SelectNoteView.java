@@ -66,7 +66,7 @@ public class SelectNoteView extends ListActivity {
 				.getStringArrayList(NoteView.EXTRA_NOTELIST);
                 
 		setListAdapter(new DragNDropAdapter(this,
-				new int[] { R.layout.dragitem }, new int[] { R.id.TextView01 },
+				new int[] { R.layout.dragitem }, new int[] { R.id.note_list_text },
 				content));
 		ListView listView = getListView();
 
@@ -123,7 +123,7 @@ public class SelectNoteView extends ListActivity {
 			itemView.setVisibility(View.INVISIBLE);
 			defaultBackgroundColor = itemView.getDrawingCacheBackgroundColor();
 			itemView.setBackgroundColor(backgroundColor);
-			ImageView iv = (ImageView) itemView.findViewById(R.id.ImageView01);
+			ImageView iv = (ImageView) itemView.findViewById(R.id.note_list_image);
 			if (iv != null)
 				iv.setVisibility(View.INVISIBLE);
 		}
@@ -131,7 +131,7 @@ public class SelectNoteView extends ListActivity {
 		public void onStopDrag(View itemView) {
 			itemView.setVisibility(View.VISIBLE);
 			itemView.setBackgroundColor(defaultBackgroundColor);
-			ImageView iv = (ImageView) itemView.findViewById(R.id.ImageView01);
+			ImageView iv = (ImageView) itemView.findViewById(R.id.note_list_image);
 			if (iv != null)
 				iv.setVisibility(View.VISIBLE);
 		}

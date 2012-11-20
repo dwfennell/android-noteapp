@@ -17,5 +17,7 @@
     <string name="title_activity_note_list_view">Notes!</string>
     <string name="hello_world">Hello world!</string>
     <string name="title_activity_select_note_view">Note Simple</string>
+    <string name="drag_icon">Touch here to edit item position</string>
+    <string name="note_name_filler">&lt;Note Name></string>
 
 </resources>
