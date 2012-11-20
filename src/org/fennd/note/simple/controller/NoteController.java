@@ -178,39 +178,24 @@ public class NoteController {
 		}
 	}
 
-	public void noteOrderChanged(int previousIndex, int currentIndex) {
-		// TODO: Test!
-		// TODO: rename variables in this method... you can do better than this!
-		int currentIndexValue = orderMap.get(currentIndex);
+	public void noteOrderChanged(int from, int to) {
+		int originalValue = orderMap.get(from);
 
-		if (currentIndex == previousIndex) {
+		if (to == from) {
 			return;
-		} else if (currentIndex < previousIndex) {
-
-			// . . . X . . . to:
-			// . X . . . . .
-			// is prev = 3, cur = 1
-			// the same: 0, 4, 5, 6
-			// changed: 1, 2 (both +1)
-
-			for (int i = previousIndex; i < currentIndex; i--) {
+		} else if (to < from) {
+			for (int i = from; i > to; i--) {
 				orderMap.set(i, orderMap.get(i - 1));
 			}
+			
 		} else {
-			// previousIndex > currentIndex
-
-			// . X . . . . .
-			// . . . X . . .
-			// prev = 1, cur = 3
-			// the same: 0, 4, 5, 6
-			// changed: 2, 3 (both -1)
-
-			for (int i = previousIndex; i < currentIndex; i++) {
+			// from < to
+			for (int i = from; i < to; i++) {
 				orderMap.set(i, orderMap.get(i + 1));
 			}
 		}
 
-		orderMap.set(currentIndex, currentIndexValue);
+		orderMap.set(to, originalValue);
 	}
 
 	private void loadNoteLists() {
