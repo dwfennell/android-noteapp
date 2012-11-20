@@ -44,6 +44,8 @@ public class NoteView extends FragmentActivity implements
 	private SharedPreferences preferences;
 	private NoteController noteControl;
 
+	// TODO: We are probably doing way more i/o than we need to... refactor to reduce.
+	
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);

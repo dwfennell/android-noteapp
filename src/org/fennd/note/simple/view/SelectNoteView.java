@@ -54,7 +54,7 @@ public class SelectNoteView extends ListActivity {
 	public final static String EXTRA_NOTE_SELECTED = "org.fennd.note.simple.NOTENAME";
 	
 	// TODO: BUG. App crashes when back button is pressed in this activity.
-	// TODO: Test note reordering.
+		// Or does it?
 	
     @Override
     public void onCreate(Bundle savedInstanceState) {
