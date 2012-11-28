@@ -56,6 +56,10 @@ public class SelectNoteView extends ListActivity {
 	// TODO: BUG. App crashes when back button is pressed in this activity.
 		// Or does it?
 	
+	// TODO: We are probably doing way more i/o than we need to... refactor to reduce.
+		// Or are we? Need to research activity/app lifecycle more throughly. 
+	// TODO: It may be better to move to a simple local DB for IO. Persistence would be simpler. 
+	
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

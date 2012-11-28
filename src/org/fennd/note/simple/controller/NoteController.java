@@ -89,7 +89,7 @@ public class NoteController extends Application {
 	public Note createNewNote(String noteTitle, String noteBody) {
 		String noteFilename = getNewFilename();
 
-		if ("".equals(noteTitle)) {
+		if (noteTitle == null) {
 			noteTitle = getUntitledName();
 		}
 
@@ -101,7 +101,7 @@ public class NoteController extends Application {
 	}
 
 	public Note createNewNote() {
-		return createNewNote(getUntitledName(), "");
+		return createNewNote(getUntitledName(), null);
 	}
 	
 	public Note delete(Note note) {
