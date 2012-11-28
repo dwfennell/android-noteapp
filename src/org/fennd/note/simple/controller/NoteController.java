@@ -10,15 +10,12 @@ import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 
 import org.fennd.note.simple.model.Note;
-import org.fennd.note.simple.view.NoteView;
 
+import android.app.Application;
 import android.content.Context;
 import android.content.SharedPreferences;
 
-public class NoteController {
-
-	// TODO: Decouple this class from NoteView? Probably a good idea.
-
+public class NoteController extends Application {
 	private final static String FILENAMES_FILE = "note_filenames.dat";
 	private final static String NOTE_TITLES_FILE = "note_note_names.dat";
 	private final static String ORDER_MAP_FILE = "note_order.dat";
@@ -28,32 +25,21 @@ public class NoteController {
 	private ArrayList<String> noteTitles;
 	private ArrayList<String> noteFilenames;
 
-	private NoteView noteView;
+	private final static String SHARED_PREF_NAME = "NotePreferences";
 	private SharedPreferences preferences;
 
+	// Singleton pattern.
 	private static NoteController instance = null;
-
-	public static NoteController getInstance(NoteView aNoteView) {
-		if (instance == null) {
-			instance = new NoteController(aNoteView);
-		}
-
-		return instance;
-	}
-
 	public static NoteController getInstance() {
 		if (instance == null) {
-
-			// TODO: THIS WILL BREAK THINGS (at some point). REFACTOR!
-			return new NoteController(null);
+			return new NoteController();
 		}
 
 		return instance;
 	}
 
-	private NoteController(NoteView noteViewIn) {
-		noteView = noteViewIn;
-		preferences = noteView.getPreferences(0);
+	private NoteController() {
+		preferences = getSharedPreferences(getSharedPrefName(), 0);
 		loadNoteLists();
 	}
 
@@ -84,20 +70,20 @@ public class NoteController {
 		return orderedNoteList;
 	}
 
+	public String getSharedPrefName() {
+		return SHARED_PREF_NAME;
+	}
+	
 	public Note loadNote(String filename) throws IOException {
 		return fetchNote(filename);
 	}
 
 	public Note loadNote(int selectedIndex) throws IOException {
-		// Load note corresponding to a noteList index.
+		// Load note corresponding to its 'order' index.
 		int realIndex = orderMap.get(selectedIndex);
 		String filename = noteFilenames.get(realIndex);
 
 		return loadNote(filename);
-	}
-
-	public Note createNewNote() {
-		return createNewNote(getUntitledName(), "");
 	}
 
 	public Note createNewNote(String noteTitle, String noteBody) {
@@ -114,6 +100,10 @@ public class NoteController {
 		return new Note(noteTitle, noteBody, noteFilename);
 	}
 
+	public Note createNewNote() {
+		return createNewNote(getUntitledName(), "");
+	}
+	
 	public Note delete(Note note) {
 		// Find note index in 'noteFilenames' and 'noteTitles'.
 		String noteFilename = note.getFilename();
@@ -142,8 +132,8 @@ public class NoteController {
 				prevNoteIndex = i;
 			}
 		}
-
-		noteView.deleteFile(noteFilename);
+		
+		deleteFile(noteFilename);
 		noteFilenames.remove(realNoteIndex);
 		noteTitles.remove(realNoteIndex);
 
@@ -216,14 +206,13 @@ public class NoteController {
 	public int getNumberOfNotes() {
 		return noteFilenames.size();
 	}
-	
+
 	private void storeObject(Object object, String filename) throws IOException {
 		FileOutputStream outputStream = null;
 		ObjectOutputStream serializedOutput = null;
 
 		try {
-			outputStream = noteView.openFileOutput(filename,
-					Context.MODE_PRIVATE);
+			outputStream = openFileOutput(filename, Context.MODE_PRIVATE);
 			serializedOutput = new ObjectOutputStream(outputStream);
 			serializedOutput.writeObject(object);
 
@@ -246,7 +235,7 @@ public class NoteController {
 		ObjectInputStream serializedInput = null;
 
 		try {
-			inputStream = noteView.openFileInput(noteFilename);
+			inputStream = openFileInput(noteFilename);
 			serializedInput = new ObjectInputStream(inputStream);
 
 			// There will only be one note object in this file.
@@ -286,7 +275,7 @@ public class NoteController {
 	private ArrayList<Integer> fetchSerializedIntArrayList(String filename)
 			throws IOException {
 		// Check for file existence.
-		File file = noteView.getBaseContext().getFileStreamPath(filename);
+		File file = getBaseContext().getFileStreamPath(filename);
 		if (!file.exists()) {
 			return new ArrayList<Integer>();
 		}
@@ -296,7 +285,7 @@ public class NoteController {
 		ArrayList<Integer> names = null;
 
 		try {
-			inputStream = noteView.openFileInput(filename);
+			inputStream = openFileInput(filename);
 			objStream = new ObjectInputStream(inputStream);
 			names = (ArrayList<Integer>) objStream.readObject();
 
@@ -328,7 +317,7 @@ public class NoteController {
 	private ArrayList<String> fetchSerializedArrayList(String filename)
 			throws IOException {
 		// Check for file existence.
-		File file = noteView.getBaseContext().getFileStreamPath(filename);
+		File file = getBaseContext().getFileStreamPath(filename);
 		if (!file.exists()) {
 			return new ArrayList<String>();
 		}
@@ -338,7 +327,7 @@ public class NoteController {
 		ArrayList<String> names = null;
 
 		try {
-			inputStream = noteView.openFileInput(filename);
+			inputStream = openFileInput(filename);
 			objStream = new ObjectInputStream(inputStream);
 			names = (ArrayList<String>) objStream.readObject();
 
